@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Camp Buddies">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2d7a4f">
+<title>🏕️ Camp Buddies</title>
+<style>
+  /* ── ROOT TOKENS ── */
+  :root {
+    --green:#2d7a4f; --green-light:#3a9960; --green-dark:#1e5235;
+    --bg:#f0fdf4; --card:#fff; --text:#1a2e1a; --text-muted:#6b7280;
+    --border:#d1fae5; --danger:#ef4444; --info:#3b82f6; --purple:#8b5cf6;
+    --radius:14px; --shadow:0 2px 16px rgba(45,122,79,.10);
+
+    /* iPhone safe areas */
+    --safe-top:    env(safe-area-inset-top,    20px);
+    --safe-bottom: env(safe-area-inset-bottom, 20px);
+    --safe-left:   env(safe-area-inset-left,    0px);
+    --safe-right:  env(safe-area-inset-right,   0px);
+
+    /* Touch target minimum */
+    --tap: 48px;
+
+    /* Typography scale */
+    --fs-xs:12px; --fs-sm:13px; --fs-base:15px;
+    --fs-md:16px; --fs-lg:18px; --fs-xl:22px; --fs-2xl:28px;
+  }
+
+  /* ── RESET ── */
+  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  html { height:100%; -webkit-text-size-adjust:100%; }
+  body {
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+    background:var(--bg); color:var(--text);
+    min-height:100%; min-height:100dvh;
+    -webkit-font-smoothing:antialiased;
+    overscroll-behavior:none;
+  }
+  input,select,textarea,button { font-family:inherit; font-size:inherit; }
+
+  /* ════════ AUTH SCREEN ════════ */
+  #auth-screen {
+    min-height:100dvh;
+    display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(160deg,#1e5235 0%,#2d7a4f 55%,#3a9960 100%);
+    padding:var(--safe-top) 20px var(--safe-bottom);
+  }
+  .auth-card {
+    background:#fff; border-radius:24px; padding:36px 28px 32px;
+    width:100%; max-width:380px;
+    box-shadow:0 24px 64px rgba(0,0,0,.28);
+    text-align:center;
+  }
+  .auth-emoji { font-size:72px; line-height:1; margin-bottom:12px; }
+  .auth-title { font-size:var(--fs-2xl); font-weight:800; color:var(--green-dark); margin-bottom:4px; letter-spacing:-.5px; }
+  .auth-subtitle { color:var(--text-muted); font-size:var(--fs-sm); margin-bottom:28px; }
+
+  .avatar-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; }
+  .avatar-btn {
+    padding:18px 10px; border:2px solid var(--border); border-radius:16px;
+    background:#fff; cursor:pointer; transition:all .18s;
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    min-height:var(--tap); -webkit-user-select:none; user-select:none;
+  }
+  .avatar-btn:active { transform:scale(.96); background:var(--bg); }
+  .av-emoji { font-size:40px; line-height:1; }
+  .av-name { font-weight:700; font-size:var(--fs-base); color:var(--green-dark); }
+
+  .pin-section { margin-top:4px; }
+  .pin-label { font-size:var(--fs-sm); color:var(--text-muted); margin-bottom:10px; display:block; }
+  .pin-input {
+    width:100%; padding:14px; border:2px solid var(--border); border-radius:12px;
+    font-size:28px; letter-spacing:12px; text-align:center; outline:none;
+    transition:border-color .2s; color:var(--text); background:#fff;
+    -webkit-appearance:none;
+  }
+  .pin-input:focus { border-color:var(--green); }
+  .login-btn {
+    width:100%; padding:16px; background:var(--green); color:#fff;
+    border:none; border-radius:12px; font-size:var(--fs-md); font-weight:700;
+    cursor:pointer; margin-top:14px; transition:background .2s; min-height:var(--tap);
+    -webkit-appearance:none;
+  }
+  .login-btn:active { background:var(--green-dark); }
+  .error-msg { color:var(--danger); font-size:var(--fs-sm); margin-top:10px; min-height:20px; }
+
+  /* ════════ APP SHELL ════════ */
+  #app { display:none; flex-direction:column; min-height:100dvh; }
+
+  /* TOP BAR */
+  .topbar {
+    background:var(--green); color:#fff;
+    padding:var(--safe-top) var(--safe-right) 0 var(--safe-left);
+    position:sticky; top:0; z-index:100;
+    box-shadow:0 2px 12px rgba(0,0,0,.18);
+    -webkit-backdrop-filter:blur(10px);
+  }
+  .topbar-inner {
+    display:flex; align-items:center; justify-content:space-between;
+    height:52px; padding:0 16px;
+  }
+  .topbar-logo { font-size:var(--fs-lg); font-weight:800; letter-spacing:-.3px; }
+  .topbar-right { display:flex; align-items:center; gap:10px; }
+  .topbar-user { display:flex; align-items:center; gap:6px; font-size:var(--fs-sm); font-weight:600; }
+  .u-emoji { font-size:26px; line-height:1; }
+  .logout-btn {
+    background:rgba(255,255,255,.2); border:none; color:#fff;
+    padding:8px 12px; border-radius:10px; cursor:pointer;
+    font-size:var(--fs-sm); font-weight:600; min-height:36px;
+    transition:background .2s; -webkit-appearance:none;
+  }
+  .logout-btn:active { background:rgba(255,255,255,.35); }
+
+  /* SCROLL CONTENT */
+  .main-content {
+    flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    padding:14px 14px 10px;
+    padding-left:calc(14px + var(--safe-left));
+    padding-right:calc(14px + var(--safe-right));
+  }
+
+  /* BOTTOM NAV */
+  .bottom-nav {
+    background:#fff; border-top:1px solid var(--border);
+    box-shadow:0 -4px 20px rgba(0,0,0,.07);
+    padding-bottom:var(--safe-bottom);
+    position:sticky; bottom:0; z-index:100;
+    padding-left:var(--safe-left); padding-right:var(--safe-right);
+  }
+  .nav-row { display:flex; }
+  .nav-btn {
+    flex:1; padding:10px 4px 8px; border:none; background:none;
+    cursor:pointer; display:flex; flex-direction:column; align-items:center;
+    gap:3px; font-size:10px; color:var(--text-muted);
+    transition:color .15s; min-height:var(--tap);
+    -webkit-appearance:none; -webkit-user-select:none; user-select:none;
+  }
+  .nav-btn .n-icon { font-size:24px; line-height:1; transition:transform .15s; }
+  .nav-btn.active { color:var(--green); }
+  .nav-btn.active .n-icon { transform:scale(1.12); }
+  .nav-btn:active .n-icon { transform:scale(.9); }
+
+  /* ════════ PANELS ════════ */
+  .panel { display:none; }
+  .panel.active { display:block; }
+
+  /* ════════ CARDS ════════ */
+  .card {
+    background:var(--card); border-radius:var(--radius); padding:16px;
+    box-shadow:var(--shadow); margin-bottom:12px;
+  }
+  .card-title {
+    font-size:var(--fs-base); font-weight:700; color:var(--green-dark);
+    margin-bottom:14px; display:flex; align-items:center; justify-content:space-between;
+  }
+  .badge {
+    background:var(--green); color:#fff; font-size:11px;
+    padding:2px 8px; border-radius:20px; font-weight:700;
+  }
+
+  /* ════════ DASHBOARD ════════ */
+  .dash-hero {
+    background:linear-gradient(140deg,var(--green-dark),var(--green-light));
+    border-radius:var(--radius); padding:22px 20px; color:#fff;
+    margin-bottom:12px; text-align:center;
+  }
+  .dash-hero h1 { font-size:var(--fs-xl); font-weight:800; margin-bottom:4px; letter-spacing:-.3px; }
+  .dash-hero p { opacity:.85; font-size:var(--fs-sm); }
+  .crew-row { display:flex; justify-content:center; gap:8px; margin-top:14px; flex-wrap:wrap; }
+  .crew-chip {
+    background:rgba(255,255,255,.18); border-radius:20px;
+    padding:5px 12px; font-size:12px; font-weight:600;
+    display:flex; align-items:center; gap:5px;
+  }
+
+  .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+  .stat-card {
+    background:#fff; border-radius:var(--radius); padding:14px 10px;
+    box-shadow:var(--shadow); text-align:center;
+  }
+  .stat-num { font-size:var(--fs-xl); font-weight:800; color:var(--green); line-height:1.1; }
+  .stat-label { font-size:11px; color:var(--text-muted); margin-top:4px; }
+
+  /* STATUS */
+  .status-pill {
+    display:inline-flex; align-items:center; gap:5px;
+    padding:6px 14px; border-radius:20px; font-size:var(--fs-sm); font-weight:700;
+  }
+  .status-not-started { background:#fef3c7; color:#92400e; }
+  .status-on-the-way  { background:#dbeafe; color:#1d4ed8; }
+  .status-at-stop     { background:#d1fae5; color:#065f46; }
+  .status-completed   { background:#f3f4f6; color:#374151; }
+
+  .status-select-wrap { display:flex; flex-wrap:wrap; gap:8px; }
+  .status-opt {
+    padding:9px 14px; border-radius:10px; border:2px solid var(--border);
+    background:#fff; cursor:pointer; font-size:var(--fs-sm); font-weight:600;
+    color:var(--text-muted); transition:all .18s; min-height:var(--tap);
+    display:flex; align-items:center;
+    -webkit-user-select:none; user-select:none;
+  }
+  .status-opt:active { transform:scale(.97); }
+  .status-opt.selected { border-color:var(--green); background:var(--green); color:#fff; }
+
+  /* UPDATES */
+  .update-item { display:flex; gap:10px; padding:11px 0; border-bottom:1px solid var(--border); }
+  .update-item:last-child { border-bottom:none; }
+  .upd-emoji { font-size:22px; flex-shrink:0; line-height:1.2; }
+  .upd-text { flex:1; font-size:var(--fs-sm); line-height:1.4; }
+  .upd-who { font-weight:700; color:var(--green-dark); }
+  .upd-time { font-size:11px; color:var(--text-muted); margin-top:2px; }
+
+  /* ════════ FORMS ════════ */
+  .form-group { margin-bottom:14px; }
+  .form-label { font-size:var(--fs-sm); font-weight:600; color:var(--text-muted); margin-bottom:6px; display:block; }
+  .form-input, .form-select, .form-textarea {
+    width:100%; padding:13px 14px;
+    border:2px solid var(--border); border-radius:10px;
+    font-size:var(--fs-md); outline:none;
+    transition:border-color .2s; background:#fff; color:var(--text);
+    -webkit-appearance:none; appearance:none;
+    min-height:var(--tap);
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color:var(--green); }
+  .form-select { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b7280' d='M1 1l5 5 5-5'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; padding-right:36px; }
+  .form-textarea { resize:vertical; min-height:80px; line-height:1.5; }
+
+  .btn {
+    padding:0 18px; border:none; border-radius:10px;
+    font-size:var(--fs-base); font-weight:700; cursor:pointer;
+    transition:all .15s; display:inline-flex; align-items:center;
+    justify-content:center; gap:6px; min-height:var(--tap);
+    -webkit-appearance:none; -webkit-user-select:none; user-select:none;
+  }
+  .btn:active { transform:scale(.97); }
+  .btn-primary { background:var(--green); color:#fff; }
+  .btn-primary:active { background:var(--green-dark); }
+  .btn-secondary { background:#e5e7eb; color:#374151; }
+  .btn-secondary:active { background:#d1d5db; }
+  .btn-danger { background:var(--danger); color:#fff; font-size:var(--fs-sm); padding:0 12px; min-height:38px; }
+  .btn-danger:active { background:#c53030; }
+  .btn-block { width:100%; padding:14px; font-size:var(--fs-md); }
+  .btn-sm { min-height:36px; padding:0 12px; font-size:var(--fs-sm); }
+  .btn-icon { padding:0; width:var(--tap); font-size:20px; border-radius:10px; }
+
+  /* ════════ EXPENSES ════════ */
+  .expense-item {
+    display:flex; align-items:flex-start; padding:13px 0;
+    border-bottom:1px solid var(--border); gap:12px;
+  }
+  .expense-item:last-child { border-bottom:none; }
+  .exp-icon { font-size:28px; line-height:1; padding-top:2px; }
+  .exp-info { flex:1; min-width:0; }
+  .exp-desc { font-weight:700; font-size:var(--fs-base); line-height:1.3; }
+  .exp-meta { font-size:12px; color:var(--text-muted); margin-top:3px; line-height:1.4; }
+  .exp-split { font-size:12px; color:var(--info); font-weight:700; margin-top:3px; }
+  .exp-right { display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0; }
+  .exp-amount { font-weight:800; font-size:var(--fs-md); color:var(--green-dark); white-space:nowrap; }
+
+  .balance-row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 0; border-bottom:1px solid var(--border);
+  }
+  .balance-row:last-child { border-bottom:none; }
+  .bal-name { font-weight:700; font-size:var(--fs-base); }
+  .bal-sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
+  .bal-amount { font-weight:800; font-size:var(--fs-base); text-align:right; }
+  .bal-positive { color:#16a34a; } .bal-negative { color:var(--danger); } .bal-zero { color:var(--text-muted); }
+
+  /* ════════ STOPS ════════ */
+  .stop-item {
+    display:flex; align-items:flex-start; gap:12px;
+    padding:13px 0; border-bottom:1px solid var(--border);
+  }
+  .stop-item:last-child { border-bottom:none; }
+  .stop-num {
+    width:34px; height:34px; min-width:34px; background:var(--green); color:#fff;
+    border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:var(--fs-sm);
+  }
+  .stop-info { flex:1; min-width:0; }
+  .stop-name { font-weight:700; font-size:var(--fs-base); line-height:1.3; }
+  .stop-detail { font-size:12px; color:var(--text-muted); margin-top:3px; line-height:1.4; }
+
+  /* ════════ GALLERY & VIDEOS (ORIGINAL QUALITY) ════════ */
+  .gallery-actions-bar {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:12px; gap:8px; flex-wrap:wrap;
+  }
+  .gallery-tabs {
+    display:flex; gap:6px; background:#f3f4f6; padding:3px; border-radius:12px;
+  }
+  .gallery-tab-btn {
+    border:none; background:transparent; padding:6px 12px; border-radius:9px;
+    font-size:var(--fs-xs); font-weight:700; color:var(--text-muted); cursor:pointer;
+    transition:all .15s;
+  }
+  .gallery-tab-btn.active {
+    background:#fff; color:var(--green-dark); box-shadow:0 1px 4px rgba(0,0,0,.08);
+  }
+
+  .upload-buttons-row {
+    display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;
+  }
+  .upload-box {
+    border:2px dashed var(--green); border-radius:12px; padding:12px 8px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:4px; background:rgba(45,122,79,.04); cursor:pointer; text-align:center;
+    transition:background .15s; -webkit-user-select:none; user-select:none;
+  }
+  .upload-box:active { background:rgba(45,122,79,.12); }
+  .upload-box-icon { font-size:26px; line-height:1; }
+  .upload-box-title { font-size:var(--fs-sm); font-weight:700; color:var(--green-dark); }
+  .upload-box-sub { font-size:10px; color:var(--text-muted); }
+
+  /* Select mode toolbar */
+  .select-toolbar {
+    background:#e0f2fe; border:1px solid #bae6fd; border-radius:12px;
+    padding:10px 14px; margin-bottom:12px; display:none;
+    align-items:center; justify-content:space-between; gap:8px;
+  }
+  .select-toolbar.active { display:flex; }
+  .select-count-text { font-size:var(--fs-sm); font-weight:700; color:#0369a1; }
+  .select-tools { display:flex; gap:6px; }
+
+  .photo-grid {
+    display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:10px;
+  }
+  @media (min-width:400px) { .photo-grid { grid-template-columns:repeat(4,1fr); } }
+
+  .photo-cell {
+    aspect-ratio:1; border-radius:10px; overflow:hidden;
+    cursor:pointer; position:relative; background:#e5e7eb;
+    box-shadow:0 1px 4px rgba(0,0,0,.06);
+  }
+  .photo-cell img, .photo-cell video { width:100%; height:100%; object-fit:cover; display:block; }
+  
+  .media-badge {
+    position:absolute; bottom:4px; left:4px;
+    background:rgba(0,0,0,.65); color:#fff;
+    border-radius:4px; font-size:9px; font-weight:700;
+    padding:2px 4px; pointer-events:none;
+    display:flex; align-items:center; gap:2px;
+  }
+  .media-size-badge {
+    position:absolute; bottom:4px; right:4px;
+    background:rgba(0,0,0,.55); color:#fff;
+    border-radius:4px; font-size:9px; font-weight:600;
+    padding:2px 4px; pointer-events:none;
+  }
+  .cell-checkbox {
+    position:absolute; top:6px; left:6px;
+    width:22px; height:22px; accent-color:var(--green);
+    cursor:pointer; z-index:2; border-radius:4px;
+    display:none;
+  }
+  .select-mode .cell-checkbox { display:block; }
+  .photo-cell.selected { outline:3px solid var(--green); }
+
+  .quick-download-btn {
+    position:absolute; top:4px; right:4px;
+    background:rgba(0,0,0,.6); border:none; color:#fff;
+    border-radius:50%; width:26px; height:26px;
+    font-size:12px; cursor:pointer; display:flex;
+    align-items:center; justify-content:center; z-index:2;
+  }
+  .select-mode .quick-download-btn { display:none; }
+
+  /* FULLSCREEN LIGHTBOX & VIDEO PLAYER */
+  .lightbox {
+    position:fixed; inset:0; background:rgba(0,0,0,.95);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    z-index:999;
+    padding:calc(var(--safe-top) + 10px) var(--safe-right) calc(var(--safe-bottom) + 10px) var(--safe-left);
+  }
+  .lightbox-header {
+    width:100%; display:flex; align-items:center; justify-content:space-between;
+    padding:0 16px; margin-bottom:10px; color:#fff; z-index:10;
+  }
+  .lightbox-media-container {
+    flex:1; width:100%; display:flex; align-items:center; justify-content:center;
+    overflow:hidden; position:relative;
+  }
+  .lightbox-media-container img {
+    max-width:100%; max-height:100%; border-radius:8px; object-fit:contain;
+  }
+  .lightbox-media-container video {
+    max-width:100%; max-height:100%; border-radius:8px; background:#000;
+  }
+  .lightbox-footer {
+    width:100%; padding:14px 16px 4px; display:flex; flex-direction:column;
+    gap:10px; align-items:center; color:#fff; z-index:10;
+  }
+  .lightbox-caption {
+    font-size:var(--fs-sm); color:rgba(255,255,255,.9); text-align:center;
+    max-width:90%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .lightbox-btn-row { display:flex; gap:10px; width:100%; max-width:340px; }
+
+  /* ════════ CHECKLIST ════════ */
+  .check-tabs { display:flex; gap:8px; margin-bottom:14px; overflow-x:auto; padding-bottom:2px; }
+  .check-tabs::-webkit-scrollbar { display:none; }
+  .check-tab {
+    padding:8px 18px; border-radius:20px; border:2px solid var(--border);
+    background:#fff; cursor:pointer; font-size:var(--fs-sm); font-weight:700;
+    color:var(--text-muted); white-space:nowrap; min-height:40px;
+    display:flex; align-items:center; transition:all .15s;
+    -webkit-user-select:none; user-select:none;
+  }
+  .check-tab:active { transform:scale(.97); }
+  .check-tab.active { background:var(--green); color:#fff; border-color:var(--green); }
+
+  .check-item {
+    display:flex; align-items:center; gap:12px;
+    padding:12px 0; border-bottom:1px solid var(--border);
+  }
+  .check-item:last-child { border-bottom:none; }
+  .check-cb {
+    width:24px; height:24px; min-width:24px; accent-color:var(--green);
+    cursor:pointer; border-radius:6px;
+  }
+  .check-label { flex:1; font-size:var(--fs-base); line-height:1.4; }
+  .check-label.done { text-decoration:line-through; color:var(--text-muted); }
+  .check-assignee { font-size:11px; color:var(--text-muted); font-weight:600; margin-top:2px; }
+
+  .progress-bar-wrap { background:var(--border); border-radius:20px; height:8px; overflow:hidden; margin:8px 0 4px; }
+  .progress-bar { height:100%; background:var(--green); border-radius:20px; transition:width .4s ease; }
+  .progress-text { font-size:12px; color:var(--text-muted); margin-bottom:14px; }
+
+  /* ════════ EMPTY STATES ════════ */
+  .empty-state { text-align:center; padding:36px 20px; color:var(--text-muted); }
+  .empty-state .e-icon { font-size:52px; margin-bottom:12px; display:block; }
+  .empty-state p { font-size:var(--fs-sm); line-height:1.5; }
+
+  /* ════════ TOAST ════════ */
+  .toast {
+    position:fixed; bottom:calc(var(--safe-bottom) + 76px); left:50%;
+    transform:translateX(-50%) translateY(16px);
+    background:var(--green-dark); color:#fff;
+    padding:11px 22px; border-radius:22px;
+    font-size:var(--fs-sm); font-weight:700;
+    opacity:0; pointer-events:none; transition:all .28s;
+    z-index:1500; white-space:nowrap; box-shadow:0 4px 16px rgba(0,0,0,.25);
+  }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* ════════ INPUT ROW ════════ */
+  .input-row { display:flex; gap:8px; margin-top:12px; align-items:flex-end; }
+  .input-row .form-input { flex:1; }
+  .input-row .form-select { width:130px; flex-shrink:0; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ AUTH SCREEN ══════════════ -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-emoji">🏕️</div>
+    <div class="auth-title">Camp Buddies</div>
+    <div class="auth-subtitle">Select your profile to continue</div>
+    <div class="avatar-grid">
+      <button class="avatar-btn" onclick="selectUser('Kelum')">
+        <span class="av-emoji">🧑‍🦱</span><span class="av-name">Kelum</span>
+      </button>
+      <button class="avatar-btn" onclick="selectUser('Pushpika')">
+        <span class="av-emoji">👨‍🌾</span><span class="av-name">Pushpika</span>
+      </button>
+      <button class="avatar-btn" onclick="selectUser('Thilini')">
+        <span class="av-emoji">👩‍🦰</span><span class="av-name">Thilini</span>
+      </button>
+      <button class="avatar-btn" onclick="selectUser('Piyumi')">
+        <span class="av-emoji">👩‍🦳</span><span class="av-name">Piyumi</span>
+      </button>
+    </div>
+    <div class="pin-section" id="pin-section" style="display:none">
+      <span class="pin-label">Enter PIN for <strong id="pin-user-name"></strong></span>
+      <input class="pin-input" type="password" inputmode="numeric"
+             maxlength="4" id="pin-input" placeholder="••••" oninput="onPinInput()">
+      <div class="error-msg" id="pin-error"></div>
+      <button class="login-btn" onclick="doLogin()">🏕️ Let's Go!</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ APP ══════════════ -->
+<div id="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-logo">🏕️ Camp Buddies</div>
+      <div class="topbar-right">
+        <div class="topbar-user">
+          <span class="u-emoji" id="topbar-emoji"></span>
+          <span id="topbar-name"></span>
+        </div>
+        <button class="logout-btn" onclick="doLogout()">↩</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCROLL AREA -->
+  <div class="main-content">
+
+    <!-- ── DASHBOARD ── -->
+    <div class="panel active" id="panel-dash">
+      <div class="dash-hero">
+        <h1>🏕️ Camp Buddies</h1>
+        <p>The Ultimate Shared Camping Experience</p>
+        <div class="crew-row">
+          <div class="crew-chip">🧑‍🦱 Kelum</div>
+          <div class="crew-chip">👨‍🌾 Pushpika</div>
+          <div class="crew-chip">👩‍🦰 Thilini</div>
+          <div class="crew-chip">👩‍🦳 Piyumi</div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-num" id="dash-total-exp">A$ 0</div>
+          <div class="stat-label">Total Expenses</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="dash-per-person">A$ 0</div>
+          <div class="stat-label">Per Person</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="dash-stops">0</div>
+          <div class="stat-label">Places & Stops</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="dash-media">0</div>
+          <div class="stat-label">Photos & Videos</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🚦 Trip Status</div>
+        <div id="trip-status-display" style="margin-bottom:12px"></div>
+        <div class="status-select-wrap">
+          <div class="status-opt" data-s="not-started" onclick="setTripStatus('not-started')">🔴 Not Started</div>
+          <div class="status-opt" data-s="on-the-way"  onclick="setTripStatus('on-the-way')">🔵 On the Way</div>
+          <div class="status-opt" data-s="at-stop"     onclick="setTripStatus('at-stop')">🟢 At a Stop</div>
+          <div class="status-opt" data-s="completed"   onclick="setTripStatus('completed')">⚫ Done</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📡 Live Updates <span class="badge" id="updates-count">0</span></div>
+        <div id="updates-feed">
+          <div class="empty-state"><span class="e-icon">📡</span><p>No updates yet. Start your trip!</p></div>
+        </div>
+        <div class="input-row" style="margin-top:14px">
+          <input class="form-input" id="update-text" placeholder="Share a quick update..." autocomplete="off">
+          <button class="btn btn-primary btn-icon" onclick="postUpdate()">📤</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── EXPENSES ── -->
+    <div class="panel" id="panel-expenses">
+      <div class="card">
+        <div class="card-title">💸 Add Expense (AUD)</div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <input class="form-input" id="exp-desc" placeholder="e.g. Groceries, Campsite fee…" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Amount (A$)</label>
+          <input class="form-input" type="number" id="exp-amount" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-select" id="exp-cat">
+            <option>🍔 Food</option><option>⛺ Camping</option><option>⛽ Fuel</option>
+            <option>🛒 Shopping</option><option>🎟️ Activities</option>
+            <option>🏨 Accommodation</option><option>🔧 Supplies</option>
+            <option>💊 Medical</option><option>📦 Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Paid by</label>
+          <select class="form-select" id="exp-paidby">
+            <option>Kelum</option><option>Pushpika</option>
+            <option>Thilini</option><option>Piyumi</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="addExpense()">➕ Add Expense</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">⚖️ Equal Split</div>
+        <div id="balance-list">
+          <div class="empty-state"><span class="e-icon">⚖️</span><p>No expenses yet</p></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📋 All Expenses <span class="badge" id="exp-count">0</span></div>
+        <div id="expense-list">
+          <div class="empty-state"><span class="e-icon">💸</span><p>No expenses yet!</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PLACES & STOPS ── -->
+    <div class="panel" id="panel-stops">
+      <div class="card">
+        <div class="card-title">📍 Add Place / Stop</div>
+        <div class="form-group">
+          <label class="form-label">Place Name</label>
+          <input class="form-input" id="stop-name" placeholder="e.g. Wilsons Promontory NP" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select class="form-select" id="stop-type">
+            <option>⛺ Campsite</option><option>🌊 Beach</option><option>🏔️ Mountain</option>
+            <option>🌲 Forest</option><option>🏙️ Town</option><option>⛽ Fuel Stop</option>
+            <option>🍔 Food Stop</option><option>🎯 Activity</option><option>📍 Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes / Address</label>
+          <textarea class="form-textarea" id="stop-notes" placeholder="Directions, campsite #, booking ref…"></textarea>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="addStop()">➕ Add Stop</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🗺️ Our Trip Route <span class="badge" id="stops-count">0</span></div>
+        <div id="stop-list">
+          <div class="empty-state"><span class="e-icon">🗺️</span><p>Add your first stop above!</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── GALLERY (ORIGINAL QUALITY PHOTOS & VIDEOS) ── -->
+    <div class="panel" id="panel-gallery">
+      <div class="card">
+        <div class="card-title">
+          <span>📸 Media Gallery <span class="badge" id="gallery-count">0</span></span>
+          <button class="btn btn-secondary btn-sm" id="btn-toggle-select" onclick="toggleSelectMode()">Select</button>
+        </div>
+
+        <!-- Filter tabs: All, Photos, Videos -->
+        <div class="gallery-actions-bar">
+          <div class="gallery-tabs">
+            <button class="gallery-tab-btn active" id="tab-media-all" onclick="setMediaFilter('all')">All</button>
+            <button class="gallery-tab-btn" id="tab-media-photo" onclick="setMediaFilter('photo')">📷 Photos</button>
+            <button class="gallery-tab-btn" id="tab-media-video" onclick="setMediaFilter('video')">🎥 Videos</button>
+          </div>
+        </div>
+
+        <!-- Dedicated Upload Boxes: Original Photos & Original Videos -->
+        <div class="upload-buttons-row">
+          <div class="upload-box" onclick="document.getElementById('photo-file-input').click()">
+            <span class="upload-box-icon">📷</span>
+            <span class="upload-box-title">Upload Photos</span>
+            <span class="upload-box-sub">Original Quality</span>
+          </div>
+          <div class="upload-box" onclick="document.getElementById('video-file-input').click()">
+            <span class="upload-box-icon">🎥</span>
+            <span class="upload-box-title">Upload Video</span>
+            <span class="upload-box-sub">Full Quality HD/4K</span>
+          </div>
+        </div>
+
+        <!-- Hidden File Inputs -->
+        <input type="file" id="photo-file-input" accept="image/*" multiple
+               style="display:none" onchange="onMediaSelected(event, 'photo')">
+        <input type="file" id="video-file-input" accept="video/*" multiple
+               style="display:none" onchange="onMediaSelected(event, 'video')">
+
+        <!-- Selection Toolbar (When Select Mode is Active) -->
+        <div class="select-toolbar" id="select-toolbar">
+          <span class="select-count-text" id="select-count-text">0 selected</span>
+          <div class="select-tools">
+            <button class="btn btn-secondary btn-sm" onclick="toggleSelectAll()">Select All</button>
+            <button class="btn btn-primary btn-sm" onclick="downloadSelected()">⬇️ Save</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteSelected()">🗑️</button>
+          </div>
+        </div>
+
+        <!-- Media Grid -->
+        <div class="photo-grid" id="photo-grid"></div>
+      </div>
+    </div>
+
+    <!-- ── CHECKLIST ── -->
+    <div class="panel" id="panel-checklist">
+      <div class="check-tabs">
+        <div class="check-tab active" onclick="switchCheckTab('shopping',this)">🛒 Shopping</div>
+        <div class="check-tab" onclick="switchCheckTab('packing',this)">🎒 Packing</div>
+        <div class="check-tab" onclick="switchCheckTab('todo',this)">✅ To-Do</div>
+      </div>
+      <div class="card">
+        <div class="card-title" id="checklist-title">🛒 Shopping List</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar" id="checklist-progress" style="width:0%"></div>
+        </div>
+        <div class="progress-text" id="checklist-progress-text">0 / 0 done</div>
+        <div id="checklist-items"></div>
+
+        <!-- Add item row -->
+        <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+          <input class="form-input" id="new-check-item"
+                 placeholder="Add item…" style="flex:1;min-width:140px" autocomplete="off">
+          <select class="form-select" id="check-assignee" style="width:128px;flex-shrink:0">
+            <option value="">Anyone</option>
+            <option>Kelum</option><option>Pushpika</option>
+            <option>Thilini</option><option>Piyumi</option>
+          </select>
+          <button class="btn btn-primary btn-icon" onclick="addCheckItem()">➕</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <div class="nav-row">
+      <button class="nav-btn active" onclick="switchPanel('dash',this)">
+        <span class="n-icon">🏠</span>Home
+      </button>
+      <button class="nav-btn" onclick="switchPanel('expenses',this)">
+        <span class="n-icon">💸</span>Expenses
+      </button>
+      <button class="nav-btn" onclick="switchPanel('stops',this)">
+        <span class="n-icon">📍</span>Places
+      </button>
+      <button class="nav-btn" onclick="switchPanel('gallery',this)">
+        <span class="n-icon">📸</span>Gallery
+      </button>
+      <button class="nav-btn" onclick="switchPanel('checklist',this)">
+        <span class="n-icon">✅</span>Lists
+      </button>
+    </div>
+  </nav>
+</div><!-- /app -->
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Fullscreen Media Lightbox & Video Player -->
+<div class="lightbox" id="lightbox" style="display:none">
+  <div class="lightbox-header">
+    <div id="lightbox-file-info" style="font-size:12px;opacity:0.85"></div>
+    <div class="lightbox-close" onclick="closeLightbox()" style="cursor:pointer;font-size:28px">✕</div>
+  </div>
+  <div class="lightbox-media-container" id="lightbox-media-container"></div>
+  <div class="lightbox-footer">
+    <div class="lightbox-caption" id="lightbox-caption"></div>
+    <div class="lightbox-btn-row" style="flex-direction:column;gap:8px;max-width:320px;width:100%">
+      <button class="btn btn-primary btn-block" id="lightbox-download-btn" onclick="downloadCurrentMediaDirect()">
+        ⬇️ Save to Phone Storage (Files)
+      </button>
+      <button class="btn btn-secondary btn-block" id="lightbox-cameraroll-btn" onclick="saveToCameraRoll()" style="background:rgba(255,255,255,.22);color:#fff">
+        📸 Save to Camera Roll (Photos)
+      </button>
+      <button class="btn btn-danger btn-block" id="lightbox-delete-btn" onclick="deleteCurrentMedia()">
+        🗑️ Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ SCRIPT ══════════════ -->
+<script>
+// ── USERS & PINS ──
+const USERS = {
+  Kelum:    { emoji:'🧑‍🦱', pin:'1234' },
+  Pushpika: { emoji:'👨‍🌾', pin:'2345' },
+  Thilini:  { emoji:'👩‍🦰', pin:'3456' },
+  Piyumi:   { emoji:'👩‍🦳', pin:'4567' },
+};
+
+let currentUser     = null;
+let currentCheckTab = 'shopping';
+
+// ── LOCAL STORAGE DB (Meta & Text) ──
+const LS    = 'campBuddiesData';
+const loadDB = () => { try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch { return {}; } };
+const saveDB = d  => localStorage.setItem(LS, JSON.stringify(d));
+const genId  = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+
+// ── INDEXEDDB MEDIA ENGINE (ORIGINAL FULL QUALITY BLOB STORAGE) ──
+// IndexedDB gives GBs of storage on iPhone/browsers, allowing 100% original quality photos & 4K videos without compression
+const IDB_NAME = 'CampBuddiesMediaDB';
+const IDB_VER = 1;
+const IDB_STORE = 'media';
+let idbPromise = null;
+
+function getMediaDB() {
+  if (!idbPromise) {
+    idbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(IDB_NAME, IDB_VER);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(IDB_STORE)) {
+          db.createObjectStore(IDB_STORE, { keyPath: 'id' });
+        }
+      };
+      req.onsuccess = e => resolve(e.target.result);
+      req.onerror = e => reject(e.target.error);
+    });
+  }
+  return idbPromise;
+}
+
+async function idbSaveMedia(item) {
+  const db = await getMediaDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(item);
+    tx.oncomplete = () => resolve();
+    tx.onerror = e => reject(e.target.error);
+  });
+}
+
+async function idbGetAllMedia() {
+  const db = await getMediaDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = e => reject(e.target.error);
+  });
+}
+
+async function idbGetMedia(id) {
+  const db = await getMediaDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get(id);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = e => reject(e.target.error);
+  });
+}
+
+async function idbDeleteMedia(id) {
+  const db = await getMediaDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = e => reject(e.target.error);
+  });
+}
+
+// ── STATE ──
+let allExpenses = [], allStops = [], allUpdates = [];
+let allMedia = []; // Stores { id, type: 'photo'|'video', blob, filename, size, by, emoji, ts, url }
+let allChecklist = { shopping:[], packing:[], todo:[] };
+let tripStatus = 'not-started';
+
+// Media Gallery State
+let currentMediaFilter = 'all'; // 'all' | 'photo' | 'video'
+let isSelectMode = false;
+let selectedMediaIds = new Set();
+let currentLightboxItem = null;
+
+async function loadAll() {
+  const d = loadDB();
+  allExpenses = d.expenses ? Object.entries(d.expenses).map(([id,v])=>({id,...v})) : [];
+  allStops    = d.stops    ? Object.entries(d.stops   ).map(([id,v])=>({id,...v})) : [];
+  allUpdates  = d.updates  ? Object.entries(d.updates ).map(([id,v])=>({id,...v})) : [];
+  allUpdates.sort((a,b)=>b.ts-a.ts);
+  tripStatus = d.tripStatus || 'not-started';
+  const cl = d.checklist || {};
+  allChecklist = {
+    shopping: cl.shopping ? Object.entries(cl.shopping).map(([id,v])=>({id,...v})) : [],
+    packing:  cl.packing  ? Object.entries(cl.packing ).map(([id,v])=>({id,...v})) : [],
+    todo:     cl.todo     ? Object.entries(cl.todo    ).map(([id,v])=>({id,...v})) : [],
+  };
+
+  // Load Media from IndexedDB
+  try {
+    const rawMedia = await idbGetAllMedia();
+    allMedia = rawMedia.map(m => {
+      // Create memory objectURL for instantaneous playback/preview
+      return {
+        ...m,
+        url: URL.createObjectURL(m.blob)
+      };
+    });
+  } catch (err) {
+    console.error('IndexedDB load error:', err);
+  }
+
+  renderAll();
+}
+
+function renderAll() {
+  renderUpdates(); renderTripStatus(); updateDashStats();
+  renderExpenses(); renderBalances();
+  renderStops(); renderGallery(); renderChecklist();
+}
+
+// ── AUTH ──
+function selectUser(name) {
+  document.getElementById('pin-section').style.display = 'block';
+  document.getElementById('pin-user-name').textContent  = name;
+  document.getElementById('pin-input').value  = '';
+  document.getElementById('pin-error').textContent = '';
+  document.getElementById('pin-input').dataset.user = name;
+  document.querySelectorAll('.avatar-btn').forEach(b=>b.style.border='2px solid var(--border)');
+  event.currentTarget.style.border = '2px solid var(--green)';
+  setTimeout(()=>document.getElementById('pin-input').focus(), 100);
+}
+function onPinInput() {
+  if (document.getElementById('pin-input').value.length === 4) doLogin();
+}
+function doLogin() {
+  const name = document.getElementById('pin-input').dataset.user;
+  const pin  = document.getElementById('pin-input').value;
+  if (!name) { document.getElementById('pin-error').textContent='User select කරන්න'; return; }
+  if (!USERS[name]||pin!==USERS[name].pin) {
+    document.getElementById('pin-error').textContent='❌ Wrong PIN. Try again!';
+    document.getElementById('pin-input').value=''; return;
+  }
+  currentUser = { name, emoji:USERS[name].emoji };
+  sessionStorage.setItem('campUser', JSON.stringify(currentUser));
+  showApp();
+}
+function doLogout() {
+  sessionStorage.removeItem('campUser'); currentUser=null;
+  document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('app').style.display='none';
+  document.getElementById('pin-section').style.display='none';
+  document.getElementById('pin-input').value='';
+}
+function showApp() {
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('topbar-emoji').textContent = currentUser.emoji;
+  document.getElementById('topbar-name').textContent  = currentUser.name;
+  document.getElementById('exp-paidby').value = currentUser.name;
+  loadAll();
+}
+
+// ── TRIP STATUS ──
+const statusLabel = s => ({'not-started':'🔴 Not Started','on-the-way':'🔵 On the Way','at-stop':'🟢 At a Stop','completed':'⚫ Completed'}[s]||s);
+
+function setTripStatus(s) {
+  const d=loadDB(); d.tripStatus=s; saveDB(d); tripStatus=s;
+  renderTripStatus();
+  sysUpdate(`${currentUser.emoji} ${currentUser.name} updated trip status: ${statusLabel(s)}`);
+}
+function renderTripStatus() {
+  document.getElementById('trip-status-display').innerHTML=
+    `<span class="status-pill status-${tripStatus}">${statusLabel(tripStatus)}</span>`;
+  document.querySelectorAll('.status-opt').forEach(el=>
+    el.classList.toggle('selected', el.dataset.s===tripStatus));
+}
+
+// ── DASHBOARD ──
+function updateDashStats() {
+  const total=allExpenses.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+  document.getElementById('dash-total-exp').textContent  ='A$ '+total.toFixed(2);
+  document.getElementById('dash-per-person').textContent ='A$ '+(total/4).toFixed(2);
+  document.getElementById('dash-stops').textContent      =allStops.length;
+  document.getElementById('dash-media').textContent      =allMedia.length;
+}
+
+// ── UPDATES ──
+function sysUpdate(text) {
+  const d=loadDB(); d.updates=d.updates||{};
+  d.updates[genId()]={ text, who:'System', emoji:'🤖', ts:Date.now() };
+  saveDB(d);
+  allUpdates=Object.entries(d.updates).map(([id,v])=>({id,...v}));
+  allUpdates.sort((a,b)=>b.ts-a.ts);
+  renderUpdates(); updateDashStats();
+}
+function postUpdate() {
+  const txt=document.getElementById('update-text').value.trim();
+  if (!txt) return;
+  const d=loadDB(); d.updates=d.updates||{};
+  d.updates[genId()]={ text:txt, who:currentUser.name, emoji:currentUser.emoji, ts:Date.now() };
+  saveDB(d); document.getElementById('update-text').value='';
+  loadAll(); toast('📤 Posted!');
+}
+function renderUpdates() {
+  document.getElementById('updates-count').textContent=allUpdates.length;
+  document.getElementById('updates-feed').innerHTML=allUpdates.length
+    ? allUpdates.slice(0,20).map(u=>`
+      <div class="update-item">
+        <div class="upd-emoji">${u.emoji}</div>
+        <div class="upd-text"><span class="upd-who">${u.who}</span> — ${esc(u.text)}
+          <div class="upd-time">${ago(u.ts)}</div></div>
+      </div>`).join('')
+    : '<div class="empty-state"><span class="e-icon">📡</span><p>No updates yet. Start your trip!</p></div>';
+}
+
+// ── EXPENSES ──
+function addExpense() {
+  const desc  =document.getElementById('exp-desc').value.trim();
+  const amt   =parseFloat(document.getElementById('exp-amount').value);
+  const cat   =document.getElementById('exp-cat').value;
+  const paidBy=document.getElementById('exp-paidby').value;
+  if (!desc||isNaN(amt)||amt<=0){ toast('⚠️ Description සහ Amount දාන්න!'); return; }
+  const d=loadDB(); d.expenses=d.expenses||{};
+  d.expenses[genId()]={ desc, amount:amt, cat, paidBy, by:currentUser.name, ts:Date.now() };
+  saveDB(d);
+  document.getElementById('exp-desc').value='';
+  document.getElementById('exp-amount').value='';
+  sysUpdate(`${currentUser.emoji} ${currentUser.name} added: ${cat} — A$${amt.toFixed(2)} (paid by ${paidBy})`);
+  loadAll(); toast('💸 Added!');
+}
+function deleteExpense(id) {
+  if(!confirm('Delete this expense?')) return;
+  const d=loadDB(); delete d.expenses[id]; saveDB(d);
+  sysUpdate(`${currentUser.emoji} ${currentUser.name} deleted an expense`);
+  loadAll(); toast('🗑️ Deleted');
+}
+function renderExpenses() {
+  const list=[...allExpenses].sort((a,b)=>b.ts-a.ts);
+  document.getElementById('exp-count').textContent=list.length;
+  document.getElementById('expense-list').innerHTML=list.length
+    ? list.map(e=>`
+      <div class="expense-item">
+        <div class="exp-icon">${(e.cat||'').split(' ')[0]}</div>
+        <div class="exp-info">
+          <div class="exp-desc">${esc(e.desc)}</div>
+          <div class="exp-meta">${e.cat} · Paid by <strong>${e.paidBy}</strong> · ${ago(e.ts)}</div>
+          <div class="exp-split">÷4 = A$${(parseFloat(e.amount)/4).toFixed(2)} each</div>
+        </div>
+        <div class="exp-right">
+          <div class="exp-amount">A$${parseFloat(e.amount).toFixed(2)}</div>
+          <button class="btn btn-danger" onclick="deleteExpense('${e.id}')">🗑</button>
+        </div>
+      </div>`).join('')
+    : '<div class="empty-state"><span class="e-icon">💸</span><p>No expenses yet!</p></div>';
+}
+function renderBalances() {
+  const members=['Kelum','Pushpika','Thilini','Piyumi'];
+  const total=allExpenses.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+  const per=total/4; const paid={};
+  members.forEach(m=>paid[m]=0);
+  allExpenses.forEach(e=>{paid[e.paidBy]=(paid[e.paidBy]||0)+parseFloat(e.amount||0);});
+  document.getElementById('balance-list').innerHTML=allExpenses.length
+    ? members.map(m=>{
+        const bal=(paid[m]||0)-per;
+        const cls=bal>0.01?'bal-positive':bal<-0.01?'bal-negative':'bal-zero';
+        const lbl=bal>0.01?`gets back A$${Math.abs(bal).toFixed(2)}`:bal<-0.01?`owes A$${Math.abs(bal).toFixed(2)}`:'settled ✓';
+        return `<div class="balance-row">
+          <div><div class="bal-name">${USERS[m]?.emoji} ${m}</div>
+            <div class="bal-sub">Paid: A$${(paid[m]||0).toFixed(2)}</div></div>
+          <div class="bal-amount ${cls}">${lbl}</div></div>`;
+      }).join('')
+    : '<div class="empty-state"><span class="e-icon">⚖️</span><p>No expenses yet</p></div>';
+}
+
+// ── STOPS ──
+function addStop() {
+  const name =document.getElementById('stop-name').value.trim();
+  const type =document.getElementById('stop-type').value;
+  const notes=document.getElementById('stop-notes').value.trim();
+  if (!name){ toast('⚠️ Place name දාන්න!'); return; }
+  const d=loadDB(); d.stops=d.stops||{};
+  d.stops[genId()]={ name, type, notes, by:currentUser.name, ts:Date.now() };
+  saveDB(d);
+  document.getElementById('stop-name').value='';
+  document.getElementById('stop-notes').value='';
+  sysUpdate(`${currentUser.emoji} ${currentUser.name} added stop: ${type} ${name}`);
+  loadAll(); toast('📍 Stop added!');
+}
+function deleteStop(id) {
+  const d=loadDB(); delete d.stops[id]; saveDB(d); loadAll(); toast('🗑️ Deleted');
+}
+function renderStops() {
+  const sorted=[...allStops].sort((a,b)=>a.ts-b.ts);
+  document.getElementById('stops-count').textContent=sorted.length;
+  document.getElementById('stop-list').innerHTML=sorted.length
+    ? sorted.map((s,i)=>`
+      <div class="stop-item">
+        <div class="stop-num">${i+1}</div>
+        <div class="stop-info">
+          <div class="stop-name">${s.type} ${esc(s.name)}</div>
+          ${s.notes?`<div class="stop-detail">${esc(s.notes)}</div>`:''}
+          <div class="stop-detail">Added by ${s.by} · ${ago(s.ts)}</div>
+        </div>
+        <button class="btn btn-danger" style="flex-shrink:0" onclick="deleteStop('${s.id}')">🗑</button>
+      </div>`).join('')
+    : '<div class="empty-state"><span class="e-icon">🗺️</span><p>Add your first stop above!</p></div>';
+}
+
+// ════════ GALLERY (ORIGINAL QUALITY, DOWNLOADS & VIDEO) ════════
+
+// Formatting helper
+function formatBytes(bytes) {
+  if (!bytes) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+// Handle Photo & Video Selection
+async function onMediaSelected(event, mediaType) {
+  const files = Array.from(event.target.files);
+  if (!files.length) return;
+
+  toast(`⏳ Uploading ${files.length} original ${mediaType}(s)…`);
+
+  for (const file of files) {
+    const item = {
+      id: genId(),
+      type: mediaType,
+      blob: file, // Store untouched original blob (full 100% quality)
+      filename: file.name,
+      size: file.size,
+      by: currentUser.name,
+      emoji: currentUser.emoji,
+      ts: Date.now()
+    };
+    await idbSaveMedia(item);
+  }
+
+  sysUpdate(`${currentUser.emoji} ${currentUser.name} added ${files.length} original ${mediaType}(s)`);
+  await loadAll();
+  toast(`✅ ${files.length} ${mediaType}(s) saved in original quality!`);
+  event.target.value = '';
+}
+
+// Filter Tabs
+function setMediaFilter(filter) {
+  currentMediaFilter = filter;
+  document.querySelectorAll('.gallery-tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-media-' + filter).classList.add('active');
+  renderGallery();
+}
+
+// Select Mode
+function toggleSelectMode() {
+  isSelectMode = !isSelectMode;
+  selectedMediaIds.clear();
+  const btn = document.getElementById('btn-toggle-select');
+  const toolbar = document.getElementById('select-toolbar');
+  const grid = document.getElementById('photo-grid');
+
+  if (isSelectMode) {
+    btn.textContent = 'Cancel';
+    btn.classList.replace('btn-secondary', 'btn-danger');
+    toolbar.classList.add('active');
+    grid.classList.add('select-mode');
+  } else {
+    btn.textContent = 'Select';
+    btn.classList.replace('btn-danger', 'btn-secondary');
+    toolbar.classList.remove('active');
+    grid.classList.remove('select-mode');
+  }
+  updateSelectCount();
+  renderGallery();
+}
+
+function toggleSelectItem(id, event) {
+  if (event) event.stopPropagation();
+  if (selectedMediaIds.has(id)) {
+    selectedMediaIds.delete(id);
+  } else {
+    selectedMediaIds.add(id);
+  }
+  updateSelectCount();
+  renderGallery();
+}
+
+function toggleSelectAll() {
+  const filtered = getFilteredMedia();
+  if (selectedMediaIds.size === filtered.length) {
+    selectedMediaIds.clear();
+  } else {
+    filtered.forEach(m => selectedMediaIds.add(m.id));
+  }
+  updateSelectCount();
+  renderGallery();
+}
+
+function updateSelectCount() {
+  document.getElementById('select-count-text').textContent = `${selectedMediaIds.size} selected`;
+}
+
+// Direct Download to Phone / Computer Local Storage (Internal Memory / Downloads folder - No Cloud)
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename || 'download';
+  // Standard anchor download saves directly to internal device storage (e.g. On My iPhone / Downloads)
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 2000);
+}
+
+// Single Download
+async function downloadSingleMedia(id, event) {
+  if (event) event.stopPropagation();
+  const item = allMedia.find(m => m.id === id);
+  if (!item) return;
+  toast(`⬇️ Saving ${item.filename} to Phone Storage…`);
+  triggerDownload(item.blob, item.filename);
+}
+
+// Batch Download Selected
+async function downloadSelected() {
+  if (!selectedMediaIds.size) {
+    toast('Select at least one photo or video!');
+    return;
+  }
+  const toDownload = allMedia.filter(m => selectedMediaIds.has(m.id));
+  toast(`⬇️ Saving ${toDownload.length} items to Phone Storage…`);
+
+  for (let i = 0; i < toDownload.length; i++) {
+    const item = toDownload[i];
+    await triggerDownload(item.blob, item.filename);
+    // 250ms interval between downloads to ensure iOS/Safari doesn't block sequential downloads
+    if (i < toDownload.length - 1) {
+      await new Promise(r => setTimeout(r, 250));
+    }
+  }
+  toast('✅ Download complete!');
+}
+
+// Batch Delete Selected
+async function deleteSelected() {
+  if (!selectedMediaIds.size) return;
+  if (!confirm(`Delete ${selectedMediaIds.size} selected item(s)?`)) return;
+
+  for (const id of selectedMediaIds) {
+    await idbDeleteMedia(id);
+  }
+  sysUpdate(`${currentUser.emoji} ${currentUser.name} deleted ${selectedMediaIds.size} media item(s)`);
+  selectedMediaIds.clear();
+  toggleSelectMode();
+  await loadAll();
+  toast('🗑️ Deleted selected items');
+}
+
+// Filter getter
+function getFilteredMedia() {
+  const sorted = [...allMedia].sort((a,b) => b.ts - a.ts);
+  if (currentMediaFilter === 'all') return sorted;
+  return sorted.filter(m => m.type === currentMediaFilter);
+}
+
+// Render Gallery Grid
+function renderGallery() {
+  const filtered = getFilteredMedia();
+  document.getElementById('gallery-count').textContent = allMedia.length;
+
+  const grid = document.getElementById('photo-grid');
+  if (!filtered.length) {
+    grid.innerHTML = `
+      <div style="grid-column:1/-1" class="empty-state">
+        <span class="e-icon">${currentMediaFilter==='video' ? '🎥' : '📸'}</span>
+        <p>No ${currentMediaFilter==='video' ? 'videos' : 'photos'} uploaded yet.<br>Tap above to add in original quality!</p>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(m => {
+    const isSelected = selectedMediaIds.has(m.id);
+    const isVideo = m.type === 'video';
+    const sizeStr = formatBytes(m.size);
+
+    return `
+      <div class="photo-cell ${isSelected ? 'selected' : ''}" onclick="onCellClick('${m.id}')">
+        <!-- Selection Checkbox -->
+        <input type="checkbox" class="cell-checkbox" ${isSelected ? 'checked' : ''}
+               onclick="toggleSelectItem('${m.id}', event)">
+
+        <!-- Media Display (Photo / Video Thumbnail) -->
+        ${isVideo
+          ? `<video src="${m.url}#t=0.5" preload="metadata" muted playsinline></video>
+             <div class="media-badge">▶ VIDEO</div>`
+          : `<img src="${m.url}" alt="${esc(m.filename)}" loading="lazy">`
+        }
+
+        <!-- File Size in Original Quality -->
+        <div class="media-size-badge">${sizeStr}</div>
+
+        <!-- Quick Download Button -->
+        <button class="quick-download-btn" title="Download original"
+                onclick="downloadSingleMedia('${m.id}', event)">⬇️</button>
+      </div>`;
+  }).join('');
+}
+
+function onCellClick(id) {
+  if (isSelectMode) {
+    toggleSelectItem(id);
+  } else {
+    openLightbox(id);
+  }
+}
+
+// Fullscreen Viewer (Lightbox)
+function openLightbox(id) {
+  const item = allMedia.find(m => m.id === id);
+  if (!item) return;
+  currentLightboxItem = item;
+
+  const container = document.getElementById('lightbox-media-container');
+  const infoEl = document.getElementById('lightbox-file-info');
+  const captionEl = document.getElementById('lightbox-caption');
+
+  infoEl.textContent = `${item.type === 'video' ? '🎥 Video' : '📷 Photo'} • ${formatBytes(item.size)}`;
+  captionEl.textContent = `${item.filename} (by ${item.by}) • ${ago(item.ts)}`;
+
+  if (item.type === 'video') {
+    container.innerHTML = `
+      <video src="${item.url}" controls autoplay playsinline style="max-width:100%;max-height:100%"></video>
+    `;
+  } else {
+    container.innerHTML = `
+      <img src="${item.url}" alt="${esc(item.filename)}">
+    `;
+  }
+
+  document.getElementById('lightbox').style.display = 'flex';
+}
+
+function closeLightbox() {
+  const container = document.getElementById('lightbox-media-container');
+  // Pause video if playing
+  const vid = container.querySelector('video');
+  if (vid) { vid.pause(); vid.src = ''; }
+  container.innerHTML = '';
+  document.getElementById('lightbox').style.display = 'none';
+  currentLightboxItem = null;
+}
+
+// Direct download to local storage (Files / Downloads)
+function downloadCurrentMediaDirect() {
+  if (!currentLightboxItem) return;
+  toast(`⬇️ Saving ${currentLightboxItem.filename} to Phone Storage…`);
+  triggerDownload(currentLightboxItem.blob, currentLightboxItem.filename);
+}
+
+// Save directly to iPhone Camera Roll / Photos App (Device Internal Photos Memory)
+async function saveToCameraRoll() {
+  if (!currentLightboxItem) return;
+  const { blob, filename } = currentLightboxItem;
+  if (navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: blob.type })] })) {
+    try {
+      toast('Tap "Save Image" or "Save Video" to save to Camera Roll');
+      await navigator.share({
+        files: [new File([blob], filename, { type: blob.type })],
+        title: filename
+      });
+      return;
+    } catch (err) {
+      // User cancelled
+      return;
+    }
+  }
+  // Fallback if share sheet not available
+  toast('⬇️ Saving to Phone Storage…');
+  triggerDownload(blob, filename);
+}
+
+async function deleteCurrentMedia() {
+  if (!currentLightboxItem) return;
+  if (!confirm(`Delete ${currentLightboxItem.filename}?`)) return;
+
+  const id = currentLightboxItem.id;
+  const filename = currentLightboxItem.filename;
+  closeLightbox();
+  await idbDeleteMedia(id);
+  sysUpdate(`${currentUser.emoji} ${currentUser.name} deleted ${filename}`);
+  await loadAll();
+  toast('🗑️ Deleted');
+}
+
+// ── CHECKLIST ──
+function switchCheckTab(tab,el){
+  currentCheckTab=tab;
+  document.querySelectorAll('.check-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('checklist-title').textContent=
+    {shopping:'🛒 Shopping List',packing:'🎒 Packing List',todo:'✅ To-Do List'}[tab];
+  renderChecklist();
+}
+function addCheckItem(){
+  const text    =document.getElementById('new-check-item').value.trim();
+  const assignee=document.getElementById('check-assignee').value;
+  if(!text) return;
+  const d=loadDB(); d.checklist=d.checklist||{}; d.checklist[currentCheckTab]=d.checklist[currentCheckTab]||{};
+  d.checklist[currentCheckTab][genId()]={ text, assignee, done:false, by:currentUser.name, ts:Date.now() };
+  saveDB(d); document.getElementById('new-check-item').value='';
+  loadAll(); toast('✅ Item added!');
+}
+function toggleCheck(id,val){
+  const d=loadDB();
+  if(d.checklist?.[currentCheckTab]?.[id]){ d.checklist[currentCheckTab][id].done=val; saveDB(d); loadAll(); }
+}
+function deleteCheck(id){
+  const d=loadDB();
+  if(d.checklist?.[currentCheckTab]){ delete d.checklist[currentCheckTab][id]; saveDB(d); loadAll(); }
+}
+function renderChecklist(){
+  const items=[...(allChecklist[currentCheckTab]||[])].sort((a,b)=>a.ts-b.ts);
+  const done=items.filter(i=>i.done).length;
+  const pct=items.length?Math.round(done/items.length*100):0;
+  document.getElementById('checklist-progress').style.width=pct+'%';
+  document.getElementById('checklist-progress-text').textContent=`${done} / ${items.length} done (${pct}%)`;
+  document.getElementById('checklist-items').innerHTML=items.length
+    ? items.map(item=>`
+      <div class="check-item">
+        <input type="checkbox" class="check-cb" ${item.done?'checked':''}
+               onchange="toggleCheck('${item.id}',this.checked)">
+        <div style="flex:1;min-width:0">
+          <div class="check-label ${item.done?'done':''}">${esc(item.text)}</div>
+          ${item.assignee?`<div class="check-assignee">👤 ${item.assignee}</div>`:''}
+        </div>
+        <button class="btn btn-danger" onclick="deleteCheck('${item.id}')">🗑</button>
+      </div>`).join('')
+    : '<div class="empty-state" style="padding:20px 0"><span class="e-icon" style="font-size:36px">📝</span><p>No items yet</p></div>';
+}
+
+// ── NAV ──
+function switchPanel(name,el){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  el.classList.add('active');
+  document.querySelector('.main-content').scrollTop=0;
+}
+
+// ── UTILS ──
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function ago(ts){
+  const d=Date.now()-ts;
+  if(d<60000)    return 'just now';
+  if(d<3600000)  return Math.floor(d/60000)+'m ago';
+  if(d<86400000) return Math.floor(d/3600000)+'h ago';
+  return Math.floor(d/86400000)+'d ago';
+}
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ── KEYBOARD & EVENTS ──
+document.getElementById('pin-input').addEventListener('keydown',e=>{if(e.key==='Enter') doLogin();});
+document.getElementById('update-text').addEventListener('keydown',e=>{if(e.key==='Enter') postUpdate();});
+document.getElementById('new-check-item').addEventListener('keydown',e=>{if(e.key==='Enter') addCheckItem();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape') closeLightbox();});
+
+// ── SESSION RESTORE ──
+(()=>{
+  const saved=sessionStorage.getItem('campUser');
+  if(saved){ try{ currentUser=JSON.parse(saved); showApp(); }catch{} }
+})();
+</script>
+</body>
+</html>
