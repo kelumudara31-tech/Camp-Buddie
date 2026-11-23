@@ -325,6 +325,141 @@
     background: rgba(255, 255, 255, 0.3);
   }
 
+  /* CLOUD SYNC UI */
+  .sync-status-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 20px;
+    padding: 5px 10px;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .sync-status-btn:active {
+    transform: scale(0.96);
+  }
+  .sync-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #f59e0b;
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
+  }
+  .sync-dot.online {
+    background: #10b981;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.9);
+  }
+  .sync-banner {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border: 1.5px dashed #3b82f6;
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    box-shadow: var(--shadow-soft);
+  }
+  .sync-banner:active {
+    transform: scale(0.98);
+  }
+  .sync-banner-icon {
+    font-size: 26px;
+    flex-shrink: 0;
+  }
+  .sync-banner-text strong {
+    font-size: 13px;
+    color: #1e40af;
+    display: block;
+  }
+  .sync-banner-text p {
+    font-size: 11px;
+    color: #3b82f6;
+    margin-top: 2px;
+  }
+  .sync-banner-arrow {
+    margin-left: auto;
+    font-weight: 900;
+    color: #1d4ed8;
+  }
+
+  /* CLOUD SYNC MODAL */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-card {
+    background: #ffffff;
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes modalPop {
+    from { transform: scale(0.92); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+  .modal-header {
+    background: linear-gradient(135deg, var(--forest-dark), var(--forest-deep));
+    color: #ffffff;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal-title {
+    font-size: var(--fs-md);
+    font-weight: 800;
+  }
+  .modal-close-btn {
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+  }
+  .modal-body {
+    padding: 20px;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .sync-modal-status-box {
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 14px;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sync-modal-status-box.online {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+  }
+  .sync-modal-status-box.offline {
+    background: #fffbeb;
+    color: #92400e;
+    border: 1px solid #fde68a;
+  }
+
   /* SCROLL CONTENT AREA */
   .main-content {
     flex: 1;
@@ -1167,6 +1302,10 @@
         <div>Camp Buddies</div>
       </div>
       <div class="topbar-right">
+        <button class="sync-status-btn" id="sync-status-btn" onclick="openSyncModal()" title="Cloud Sync">
+          <span class="sync-dot" id="sync-dot"></span>
+          <span class="sync-text" id="sync-text">Cloud Sync</span>
+        </button>
         <div class="topbar-user">
           <img id="topbar-user-img" src="" alt="" class="topbar-user-img">
           <span class="topbar-user-name" id="topbar-name"></span>
@@ -1181,6 +1320,15 @@
 
     <!-- ── DASHBOARD ── -->
     <div class="panel active" id="panel-dash">
+      <!-- CLOUD SYNC BANNER -->
+      <div class="sync-banner" id="sync-banner" onclick="openSyncModal()">
+        <span class="sync-banner-icon">📡</span>
+        <div class="sync-banner-text">
+          <strong>Shared 4-Way Cloud Sync</strong>
+          <p>Tap to connect Firebase so Kelum, Pushpika, Thilini & Piyumi sync live!</p>
+        </div>
+        <span class="sync-banner-arrow">➔</span>
+      </div>
       <div class="travel-hero">
         <div class="hero-tag">🌲 SHARED EXPEDITION • AUSTRALIA</div>
         <div class="hero-title">Wilderness Adventures</div>
@@ -1487,6 +1635,43 @@
   </div>
 </div>
 
+<!-- ══════════════ CLOUD SYNC MODAL ══════════════ -->
+<div class="modal-overlay" id="sync-modal" style="display:none;" onclick="if(event.target===this)closeSyncModal()">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title">🌐 4-Way Realtime Cloud Sync</div>
+      <button class="modal-close-btn" onclick="closeSyncModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="sync-modal-status" class="sync-modal-status-box offline">
+        <span>⚠️</span>
+        <div>Currently saving to phone memory only.</div>
+      </div>
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px; line-height:1.5;">
+        Connect your free Firebase Realtime Database so Kelum, Pushpika, Thilini & Piyumi see live updates on their phones instantly!
+      </p>
+      <div class="form-group">
+        <label class="form-label">Paste Firebase Config or Database URL</label>
+        <textarea class="form-textarea" id="firebase-input" rows="5" placeholder='const firebaseConfig = { databaseURL: "https://...", ... };'></textarea>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="saveFirebaseConfigFromUI()">
+        💾 Save & Connect Cloud
+      </button>
+      <hr style="margin:16px 0; border:0; border-top:1px solid #e2e8f0;">
+      <div style="font-size:12px; color:var(--text-muted); line-height:1.5;">
+        <strong>Quick 2-minute Setup:</strong><br>
+        1. Open <b>console.firebase.google.com</b> on your phone/PC<br>
+        2. Create a project & Realtime Database (test mode)<br>
+        3. Copy the <code>firebaseConfig</code> and paste it here!
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ FIREBASE REALTIME SYNC SDK ══════════════ -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
 <!-- ══════════════ SCRIPT ENGINE ══════════════ -->
 <script>
 // ── REAL AVATARS & USER SECURITY ──
@@ -1500,11 +1685,165 @@ const USERS = {
 let currentUser     = null;
 let currentCheckTab = 'shopping';
 
-// ── LOCAL STORAGE DB (Text / Itinerary / Expenses) ──
+// ── LOCAL STORAGE DB & FIREBASE CLOUD SYNC ──
 const LS = 'campBuddiesData';
 const loadDB = () => { try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch { return {}; } };
-const saveDB = d  => localStorage.setItem(LS, JSON.stringify(d));
 const genId  = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+
+let fbDb = null;
+let isCloudSync = false;
+
+function getStoredFirebaseConfig() {
+  try {
+    const s = localStorage.getItem('camp_firebase_cfg');
+    if (s) return JSON.parse(s);
+  } catch (e) {}
+  return null;
+}
+
+function initFirebaseSync() {
+  const cfg = getStoredFirebaseConfig();
+  if (typeof firebase !== 'undefined' && cfg && cfg.databaseURL) {
+    try {
+      if (!firebase.apps.length) {
+        firebase.initializeApp(cfg);
+      }
+      fbDb = firebase.database();
+      isCloudSync = true;
+      updateSyncStatusUI(true);
+
+      // Listen for remote real-time updates from other members
+      fbDb.ref('camp_buddies').on('value', (snap) => {
+        const cloudData = snap.val();
+        if (cloudData) {
+          localStorage.setItem(LS, JSON.stringify(cloudData));
+          applyCloudData(cloudData);
+        }
+      });
+    } catch (err) {
+      console.warn('Firebase init error:', err);
+      isCloudSync = false;
+      updateSyncStatusUI(false);
+    }
+  } else {
+    isCloudSync = false;
+    updateSyncStatusUI(false);
+  }
+}
+
+function updateSyncStatusUI(online) {
+  const dot = document.getElementById('sync-dot');
+  const txt = document.getElementById('sync-text');
+  const banner = document.getElementById('sync-banner');
+  const modalBox = document.getElementById('sync-modal-status');
+  if (dot && txt) {
+    if (online) {
+      dot.className = 'sync-dot online';
+      txt.textContent = 'Cloud Live';
+      if (banner) banner.style.display = 'none';
+      if (modalBox) {
+        modalBox.className = 'sync-modal-status-box online';
+        modalBox.innerHTML = '<span>🟢</span><div><b>Cloud Live Sync Active!</b> Real-time sync across all 4 devices is running.</div>';
+      }
+    } else {
+      dot.className = 'sync-dot';
+      txt.textContent = 'Setup Cloud';
+      if (banner) banner.style.display = 'flex';
+      if (modalBox) {
+        modalBox.className = 'sync-modal-status-box offline';
+        modalBox.innerHTML = '<span>⚠️</span><div><b>Currently saving to phone memory only.</b> Connect Firebase to sync with friends.</div>';
+      }
+    }
+  }
+}
+
+function saveDB(d) {
+  localStorage.setItem(LS, JSON.stringify(d));
+  if (isCloudSync && fbDb) {
+    fbDb.ref('camp_buddies').set(d).catch(e => console.error('Cloud save failed:', e));
+  }
+}
+
+function applyCloudData(d) {
+  allExpenses = d.expenses ? Object.entries(d.expenses).map(([id,v])=>({id,...v})) : [];
+  allStops    = d.stops    ? Object.entries(d.stops   ).map(([id,v])=>({id,...v})) : [];
+  allUpdates  = d.updates  ? Object.entries(d.updates ).map(([id,v])=>({id,...v})) : [];
+  allUpdates.sort((a,b)=>b.ts-a.ts);
+  tripStatus = d.tripStatus || 'not-started';
+  const cl = d.checklist || {};
+  allChecklist = {
+    shopping: cl.shopping ? Object.entries(cl.shopping).map(([id,v])=>({id,...v})) : [],
+    packing:  cl.packing  ? Object.entries(cl.packing ).map(([id,v])=>({id,...v})) : [],
+    todo:     cl.todo     ? Object.entries(cl.todo    ).map(([id,v])=>({id,...v})) : [],
+  };
+  renderAll();
+}
+
+function openSyncModal() {
+  document.getElementById('sync-modal').style.display = 'flex';
+  const cfg = getStoredFirebaseConfig();
+  if (cfg) {
+    document.getElementById('firebase-input').value = JSON.stringify(cfg, null, 2);
+  }
+}
+
+function closeSyncModal() {
+  document.getElementById('sync-modal').style.display = 'none';
+}
+
+function saveFirebaseConfigFromUI() {
+  const raw = document.getElementById('firebase-input').value.trim();
+  if (!raw) {
+    toast('⚠️ Please paste Firebase configuration or Database URL');
+    return;
+  }
+  let cfg = null;
+  try {
+    if (raw.startsWith('{')) {
+      cfg = JSON.parse(raw);
+    } else if (raw.includes('databaseURL')) {
+      const jsonStr = raw
+        .replace(/const\s+firebaseConfig\s*=\s*/, '')
+        .replace(/;\s*$/, '')
+        .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')
+        .replace(/'/g, '"');
+      cfg = JSON.parse(jsonStr);
+    } else if (raw.startsWith('https://')) {
+      cfg = { databaseURL: raw };
+    }
+  } catch (e) {
+    const match = raw.match(/https:\/\/[a-zA-Z0-9.-]+\.firebasedatabase\.app|https:\/\/[a-zA-Z0-9.-]+\.firebaseio\.com/);
+    if (match) {
+      cfg = { databaseURL: match[0] };
+    } else {
+      toast('⚠️ Could not parse Firebase config. Please check format!');
+      return;
+    }
+  }
+
+  if (!cfg || !cfg.databaseURL) {
+    toast('⚠️ Missing databaseURL in Firebase config!');
+    return;
+  }
+
+  localStorage.setItem('camp_firebase_cfg', JSON.stringify(cfg));
+  toast('🔄 Connecting to Firebase Cloud...');
+  initFirebaseSync();
+  setTimeout(() => {
+    if (isCloudSync) {
+      toast('🎉 Connected! Uploading local trip data to cloud...');
+      const currentLocal = loadDB();
+      fbDb.ref('camp_buddies').once('value').then(snap => {
+        if (!snap.exists() || !snap.val()) {
+          fbDb.ref('camp_buddies').set(currentLocal);
+        }
+      });
+      closeSyncModal();
+    } else {
+      toast('⚠️ Could not connect. Check database rules (start in test mode)!');
+    }
+  }, 1200);
+}
 
 // ── INDEXEDDB MEDIA ENGINE (ORIGINAL FULL QUALITY BLOB STORAGE) ──
 const IDB_NAME = 'CampBuddiesMediaDB';
@@ -1645,6 +1984,7 @@ function showApp() {
   document.getElementById('topbar-user-img').src = currentUser.avatar;
   document.getElementById('topbar-name').textContent = currentUser.name;
   document.getElementById('exp-paidby').value = currentUser.name;
+  updateSyncStatusUI(isCloudSync);
   loadAll();
 }
 
@@ -2212,8 +2552,9 @@ document.getElementById('update-text').addEventListener('keydown', e => { if (e.
 document.getElementById('new-check-item').addEventListener('keydown', e => { if (e.key === 'Enter') addCheckItem(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
 
-// ── SESSION RESTORE ──
+// ── INIT & SESSION RESTORE ──
 (() => {
+  initFirebaseSync();
   const saved = sessionStorage.getItem('campUser');
   if (saved) {
     try {
