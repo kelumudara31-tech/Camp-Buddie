@@ -1451,9 +1451,12 @@
 
       <!-- ALL EXPENSES LIST -->
       <div class="card">
-        <div class="card-title">
-          <span>📋 All Expenses</span>
-          <span class="badge" id="exp-count">0</span>
+        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <span>📋 All Expenses</span>
+            <span class="badge" id="exp-count">0</span>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="clearAllExpenses()" style="font-size:11px; padding:4px 10px;">🧹 Clear All</button>
         </div>
         <div id="expense-list">
           <div class="empty-state"><span class="e-icon">💸</span><p>No expenses recorded!</p></div>
@@ -1693,12 +1696,19 @@ const genId  = () => Date.now().toString(36) + Math.random().toString(36).slice(
 let fbDb = null;
 let isCloudSync = false;
 
+const DEFAULT_FIREBASE_CONFIG = {
+  databaseURL: "https://camp-buddie-default-rtdb.asia-southeast1.firebasedatabase.app"
+};
+
 function getStoredFirebaseConfig() {
   try {
     const s = localStorage.getItem('camp_firebase_cfg');
-    if (s) return JSON.parse(s);
+    if (s) {
+      const parsed = JSON.parse(s);
+      if (parsed && parsed.databaseURL) return parsed;
+    }
   } catch (e) {}
-  return null;
+  return DEFAULT_FIREBASE_CONFIG;
 }
 
 function initFirebaseSync() {
@@ -1718,6 +1728,11 @@ function initFirebaseSync() {
         if (cloudData) {
           localStorage.setItem(LS, JSON.stringify(cloudData));
           applyCloudData(cloudData);
+        } else {
+          // Clean fresh start for trip
+          const clean = { updates: {}, expenses: {}, stops: {}, checklist: { shopping: {}, packing: {}, todo: {} }, tripStatus: 'not-started' };
+          localStorage.setItem(LS, JSON.stringify(clean));
+          applyCloudData(clean);
         }
       });
     } catch (err) {
@@ -2074,6 +2089,17 @@ function deleteExpense(id) {
   const d=loadDB(); delete d.expenses[id]; saveDB(d);
   sysUpdate(`${currentUser.name} deleted an expense`);
   loadAll(); toast('🗑️ Deleted');
+}
+
+function clearAllExpenses() {
+  if (!allExpenses.length) { toast('No expenses to clear'); return; }
+  if (!confirm('Clear all test expenses? Balances will reset to A$0.00.')) return;
+  const d = loadDB();
+  d.expenses = {};
+  saveDB(d);
+  sysUpdate(`${currentUser.name} cleared all test expenses`);
+  loadAll();
+  toast('🧹 All expenses cleared!');
 }
 
 function renderExpenses() {
