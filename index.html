@@ -1779,7 +1779,7 @@ function saveDB(d) {
   }
 }
 
-function applyCloudData(d) {
+async function applyCloudData(d) {
   allExpenses = d.expenses ? Object.entries(d.expenses).map(([id,v])=>({id,...v})) : [];
   allStops    = d.stops    ? Object.entries(d.stops   ).map(([id,v])=>({id,...v})) : [];
   allUpdates  = d.updates  ? Object.entries(d.updates ).map(([id,v])=>({id,...v})) : [];
@@ -1791,7 +1791,54 @@ function applyCloudData(d) {
     packing:  cl.packing  ? Object.entries(cl.packing ).map(([id,v])=>({id,...v})) : [],
     todo:     cl.todo     ? Object.entries(cl.todo    ).map(([id,v])=>({id,...v})) : [],
   };
+
+  // 📸 SYNC CLOUD MEDIA (PHOTOS ACROSS ALL 4 FRIENDS)
+  if (d.media) {
+    await syncCloudMediaToLocal(d.media);
+  }
+
   renderAll();
+}
+
+function dataURLtoBlob(dataurl) {
+  const arr = dataurl.split(',');
+  const mime = arr[0].match(/:(.*?);/)[1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while(n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new Blob([u8arr], {type: mime});
+}
+
+async function syncCloudMediaToLocal(cloudMediaObj) {
+  const cloudList = Object.values(cloudMediaObj || {});
+  let added = false;
+  for (const cm of cloudList) {
+    const exists = allMedia.find(m => m.id === cm.id);
+    if (!exists && cm.dataUrl) {
+      const blob = dataURLtoBlob(cm.dataUrl);
+      const item = {
+        id: cm.id,
+        type: cm.type || 'photo',
+        blob,
+        url: cm.dataUrl,
+        filename: cm.filename,
+        size: cm.size || blob.size,
+        by: cm.by,
+        avatar: cm.avatar,
+        ts: cm.ts
+      };
+      allMedia.unshift(item);
+      try { await idbSaveMedia(item); } catch (e) {}
+      added = true;
+    }
+  }
+  if (added) {
+    renderGallery();
+    updateDashStats();
+  }
 }
 
 function openSyncModal() {
@@ -1940,7 +1987,10 @@ async function loadAll() {
 
   try {
     const rawMedia = await idbGetAllMedia();
-    allMedia = rawMedia.map(m => ({ ...m, url: URL.createObjectURL(m.blob) }));
+    allMedia = rawMedia.map(m => ({
+      ...m,
+      url: m.dataUrl || (m.blob ? URL.createObjectURL(m.blob) : '')
+    }));
   } catch (err) {
     console.error('IndexedDB load error:', err);
   }
@@ -2250,17 +2300,59 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
+function compressPhoto(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let w = img.width;
+        let h = img.height;
+        const maxDim = 1280;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 async function onMediaSelected(event, mediaType) {
   const files = Array.from(event.target.files);
   if (!files.length) return;
 
-  toast(`⏳ Uploading ${files.length} original ${mediaType}(s)…`);
+  toast(`⏳ Processing ${files.length} ${mediaType}(s)…`);
 
   for (const file of files) {
+    const id = genId();
+    let dataUrl = null;
+    if (mediaType === 'photo') {
+      try {
+        dataUrl = await compressPhoto(file);
+      } catch (e) {
+        console.warn('Compress failed:', e);
+      }
+    }
+
     const item = {
-      id: genId(),
+      id,
       type: mediaType,
       blob: file,
+      dataUrl,
       filename: file.name,
       size: file.size,
       by: currentUser.name,
@@ -2268,11 +2360,26 @@ async function onMediaSelected(event, mediaType) {
       ts: Date.now()
     };
     await idbSaveMedia(item);
+
+    // Sync to Cloud Realtime Database so all 4 friends get it!
+    if (isCloudSync && fbDb && dataUrl) {
+      const cloudItem = {
+        id,
+        type: 'photo',
+        dataUrl,
+        filename: file.name,
+        size: file.size,
+        by: currentUser.name,
+        avatar: currentUser.avatar,
+        ts: Date.now()
+      };
+      fbDb.ref('camp_buddies/media/' + id).set(cloudItem).catch(e => console.error('Cloud media sync error:', e));
+    }
   }
 
-  sysUpdate(`${currentUser.name} uploaded ${files.length} original ${mediaType}(s)`);
+  sysUpdate(`${currentUser.name} uploaded ${files.length} ${mediaType}(s)`);
   await loadAll();
-  toast(`✅ Saved ${files.length} ${mediaType}(s) in original quality!`);
+  toast(`✅ Saved & Synced ${files.length} ${mediaType}(s)!`);
   event.target.value = '';
 }
 
@@ -2371,6 +2478,9 @@ async function deleteSelected() {
 
   for (const id of selectedMediaIds) {
     await idbDeleteMedia(id);
+    if (isCloudSync && fbDb) {
+      fbDb.ref('camp_buddies/media/' + id).remove().catch(e => {});
+    }
   }
   sysUpdate(`${currentUser.name} deleted ${selectedMediaIds.size} media item(s)`);
   selectedMediaIds.clear();
@@ -2481,6 +2591,9 @@ async function deleteCurrentMedia() {
   const filename = currentLightboxItem.filename;
   closeLightbox();
   await idbDeleteMedia(id);
+  if (isCloudSync && fbDb) {
+    fbDb.ref('camp_buddies/media/' + id).remove().catch(e => {});
+  }
   sysUpdate(`${currentUser.name} deleted ${filename}`);
   await loadAll();
   toast('🗑️ Deleted');
